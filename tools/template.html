@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Letter Wheel Pro">
+<meta name="application-name" content="Letter Wheel Pro">
+<meta name="theme-color" content="#0f1724">
+<meta name="format-detection" content="telephone=no">
+<title>Letter Wheel Pro</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23101826'/%3E%3Ccircle cx='50' cy='50' r='32' fill='none' stroke='%23d4af6a' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='10' fill='%23d4af6a'/%3E%3C/svg%3E">
+<style>
+  :root { --bg1:#0b111c; --bg2:#1c2a3f; --accent:#d4af6a; --cell:#1f2b3d; --found:#c9a45c; --text:#f3ead8; --ink:#0f1724; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  html, body { margin:0; padding:0; height:100%; overflow:hidden; overscroll-behavior:none; touch-action:none; }
+  body { position:fixed; inset:0; font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    background: radial-gradient(120% 80% at 50% 0%, #22324a 0%, var(--bg2) 35%, var(--bg1) 100%); color:var(--text); }
+  #app { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+    padding: calc(env(safe-area-inset-top, 0px) + 8px) 10px calc(env(safe-area-inset-bottom, 0px) + 10px); }
+  header { width:100%; max-width:480px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex:0 0 auto; }
+  .pill { background: rgba(212,175,106,.10); border:1px solid rgba(212,175,106,.45); border-radius: 999px; padding: 6px 13px; font-weight: 700; font-size: 15px; white-space:nowrap; color:var(--accent); font-family:inherit; letter-spacing:.5px; }
+  #levelPill { font-size:16px; text-transform:uppercase; letter-spacing:2px; }
+  #title { font-size:11px; letter-spacing:4px; text-transform:uppercase; color:rgba(212,175,106,.7); text-align:center; margin-top:4px; }
+  #gridWrap { flex: 1 1 auto; width:100%; max-width:480px; display:flex; align-items:center; justify-content:center; min-height:0; padding:6px 0; }
+  #grid { position:relative; }
+  .cell { position:absolute; background: var(--cell); border-radius: 18%; display:flex; align-items:center; justify-content:center;
+    color: var(--ink); font-weight: 700; border:1px solid rgba(212,175,106,.25); box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 2px 6px rgba(0,0,0,.35); transition: background .25s; border-radius: 10%; }
+  .cell span { opacity:0; transform: scale(.3); transition: opacity .25s, transform .3s cubic-bezier(.3,1.6,.5,1); }
+  .cell.show span { opacity:1; transform: scale(1); }
+  .cell.found { background: linear-gradient(#e6c784, #b8914b); color:var(--ink); border-color:#e9d29c; }
+  .cell.hinted:not(.found) { background: #2c3c55; color:#e6c784; }
+  .cell.pop { animation: pop .45s ease; }
+  @keyframes pop { 50% { transform: scale(1.18); } }
+  #status { flex:0 0 auto; height: 52px; display:flex; align-items:center; justify-content:center; width:100%; }
+  #preview { min-width: 40px; min-height:42px; padding: 4px 16px; border-radius: 8px; background: #f3ead8; color: var(--ink);
+    font-size: 26px; font-weight: 700; letter-spacing: 4px; opacity:0; transition: opacity .15s; }
+  #preview.on { opacity:1; }
+  #preview.good { background: var(--found); color:var(--ink); }
+  #preview.bonus { background: #7fb3a3; }
+  #preview.dup { background: #8d97a8; }
+  #preview.bad { animation: shake .35s; background:#ff6b6b; color:#fff; }
+  @keyframes shake { 20%,60% { transform: translateX(-8px); } 40%,80% { transform: translateX(8px); } }
+  #bottom { flex: 0 0 auto; width:100%; max-width:480px; display:flex; align-items:center; justify-content:space-between; }
+  .side { display:flex; flex-direction:column; gap:22px; align-items:center; width:64px; }
+  .btn { width: 56px; height: 56px; border-radius: 50%; border: none; background: #1f2b3d; color: var(--accent); font-size: 26px; border:1px solid rgba(212,175,106,.5);
+    display:flex; align-items:center; justify-content:center; box-shadow: 0 3px 8px rgba(0,0,0,.4); position:relative; cursor:pointer; padding:0; font-family:inherit; }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.18); }
+  .btn .badge { position:absolute; top:-6px; right:-6px; min-width:22px; height:22px; border-radius:11px; background:var(--accent); color:var(--ink); font-size:13px; font-weight:900;
+    display:flex; align-items:center; justify-content:center; padding:0 5px; border:2px solid #0f1724; font-family:system-ui,sans-serif; }
+  .btn.hidden { visibility:hidden; }
+  .btn small { font-size:11px; position:absolute; bottom:-17px; color:rgba(212,175,106,.85); font-weight:600; letter-spacing:1px; white-space:nowrap; }
+  #wheelBox { position:relative; touch-action:none; }
+  #wheelBg { position:absolute; inset:0; border-radius:50%; background: radial-gradient(circle, rgba(212,175,106,.10), rgba(16,24,38,.65)); box-shadow: inset 0 0 0 2px rgba(212,175,106,.55), 0 0 30px rgba(0,0,0,.4); }
+  #lineSvg { position:absolute; inset:0; overflow:visible; pointer-events:none; }
+  .letter { position:absolute; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; color: var(--text);
+    background:#26354c; border:1px solid rgba(212,175,106,.55); box-shadow: 0 3px 8px rgba(0,0,0,.4); transition: background .12s, transform .12s, left .35s, top .35s; pointer-events:none; }
+  .letter.sel { background: var(--accent); color:var(--ink); transform: scale(1.1); }
+  #overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background: rgba(5,8,14,.72); z-index:20; }
+  #overlay.on { display:flex; }
+  .card { background:#152033; color: var(--text); border:1px solid rgba(212,175,106,.5); border-radius: 18px; padding: 26px 28px; text-align:center; width: min(86vw, 340px); box-shadow: 0 10px 40px rgba(0,0,0,.3); animation: cardIn .5s cubic-bezier(.3,1.5,.5,1); }
+  @keyframes cardIn { from { transform: scale(.5); opacity:0; } }
+  .card h1 { margin: 4px 0 6px; font-size: 28px; color:var(--accent); font-weight:600; letter-spacing:1px; }
+  .card p { margin: 6px 0 16px; font-size: 17px; }
+  .stars { font-size: 44px; letter-spacing: 6px; }
+  .big { border:none; border-radius: 999px; padding: 13px 32px; font-size: 19px; font-weight: 700; background: linear-gradient(#e6c784, #b8914b); color: var(--ink); box-shadow: 0 4px 0 #7d6130; font-family:inherit; cursor:pointer; }
+  .big:active { transform: translateY(3px); box-shadow: 0 2px 0 #7d6130; }
+  .link { background:none; border:none; color:#8d97a8; font-size:14px; margin-top:12px; text-decoration: underline; font-family:inherit; cursor:pointer; display:block; margin-left:auto; margin-right:auto; }
+  #confetti { position:fixed; inset:0; pointer-events:none; z-index:30; }
+  #toast { position:fixed; left:50%; top: 16%; transform: translateX(-50%); background: #f3ead8; color: var(--ink); padding: 10px 18px; border-radius: 10px; font-weight:700; font-size:17px; opacity:0; transition: opacity .25s; z-index:25; pointer-events:none; white-space:nowrap; }
+  #toast.on { opacity:1; }
+  #bonusList { font-size: 15px; text-align:left; line-height:1.7; max-height: 40vh; overflow:auto; word-spacing: 8px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <button class="pill" id="soundBtn" aria-label="Sound on/off">&#9835; On</button>
+    <div><div class="pill" id="levelPill">Level 1</div><div id="title">Letter Wheel Pro</div></div>
+    <button class="pill" id="bonusPill" aria-label="Bonus words">&#9733; 0</button>
+  </header>
+  <div id="gridWrap"><div id="grid"></div></div>
+  <div id="status"><div id="preview"></div></div>
+  <div id="bottom">
+    <div class="side">
+      <button class="btn" id="shuffleBtn" aria-label="Shuffle letters">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d4af6a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+        <small>Shuffle</small></button>
+      <button class="btn hidden" id="clearBtn" aria-label="Clear letters">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e08a7a" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div id="wheelBox"><div id="wheelBg"></div><svg id="lineSvg"><polyline id="line" fill="none" stroke="#d4af6a" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.95"/></svg></div>
+    <div class="side">
+      <button class="btn" id="hintBtn" aria-label="Hint">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d4af6a" stroke-width="1.8" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/></svg>
+        <span class="badge" id="hintCount">3</span><small>Hint</small></button>
+      <button class="btn hidden" id="goBtn" aria-label="Submit word">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#d4af6a" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="overlay"><div class="card" id="card"></div></div>
+<canvas id="confetti"></canvas>
+<script>
+(function () {
+'use strict';
+var LEVELS = /*LEVELS_START*/[]/*LEVELS_END*/;
+var KEY = 'letterWheelPro.save.v1';
+var DICT = new Set(/*DICT_START*/""/*DICT_END*/.split(' '));
+var BONUS_PER_HINT = 5;
+function $(id) { return document.getElementById(id); }
+function defaults() { return { level: 0, found: [], revealed: [], bonusFound: [], hints: 3, bonusMeter: 0, order: null, hintsUsed: 0, muted: false }; }
+var S = defaults(); S.hints = 3;
+try { var raw = localStorage.getItem(KEY); if (raw) { var o = JSON.parse(raw); if (o && typeof o.level === 'number') S = Object.assign(defaults(), o); } } catch (e) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+var L = null, cells = {}, letterEls = [], sel = [], dragging = false, tapMode = false, gestureStartLen = 0;
+var pointer = null, geom = { centers: [] }, overlayOpen = false, completing = false, flashT = 0, toastT = 0;
+
+function targets() { return L.placements.map(function (p) { return p.word; }); }
+function cellKey(p, i) { return (p.row + (p.dir === 'v' ? i : 0)) + ',' + (p.col + (p.dir === 'h' ? i : 0)); }
+function wordKeys(w) { var p = L.placements.find(function (q) { return q.word === w; }); var out = []; for (var i = 0; i < p.word.length; i++) out.push(cellKey(p, i)); return out; }
+function isShown(k) { return S.revealed.indexOf(k) >= 0 || cells[k].words.some(function (w) { return S.found.indexOf(w) >= 0; }); }
+
+/* ---------- level setup ---------- */
+function startLevel() {
+  completing = false;
+  if (S.level >= LEVELS.length) { showAllDone(); return; }
+  L = LEVELS[S.level];
+  if (!S.order || S.order.length !== L.letters.length) S.order = L.letters.split('').map(function (_, i) { return i; });
+  var t = targets();
+  S.found = S.found.filter(function (w) { return t.indexOf(w) >= 0; });
+  save();
+  $('levelPill').textContent = 'Level ' + (S.level + 1);
+  buildGrid(); buildWheel(); clearSel(); updateHud(); refreshCells();
+  if (S.found.length === t.length) checkDone();
+}
+
+function buildGrid() {
+  var g = $('grid'); g.innerHTML = ''; cells = {};
+  L.placements.forEach(function (p) {
+    for (var i = 0; i < p.word.length; i++) {
+      var k = cellKey(p, i);
+      if (!cells[k]) {
+        var el = document.createElement('div'); el.className = 'cell';
+        var sp = document.createElement('span'); sp.textContent = p.word[i]; el.appendChild(sp);
+        g.appendChild(el);
+        var rc = k.split(',').map(Number);
+        cells[k] = { r: rc[0], c: rc[1], ch: p.word[i], el: el, words: [] };
+      }
+      cells[k].words.push(p.word);
+    }
+  });
+  layoutGrid();
+}
+function layoutGrid() {
+  if (!L) return;
+  var wrap = $('gridWrap'), W = wrap.clientWidth - 8, H = wrap.clientHeight - 12;
+  var size = Math.max(18, Math.floor(Math.min(W / L.cols, H / L.rows, 62)));
+  var gap = Math.max(3, Math.round(size * 0.09)), cs = size - gap, g = $('grid');
+  g.style.width = (size * L.cols - gap) + 'px'; g.style.height = (size * L.rows - gap) + 'px';
+  Object.keys(cells).forEach(function (k) {
+    var c = cells[k], st = c.el.style;
+    st.left = c.c * size + 'px'; st.top = c.r * size + 'px'; st.width = cs + 'px'; st.height = cs + 'px'; st.fontSize = Math.round(cs * 0.6) + 'px';
+  });
+}
+function refreshCells() {
+  Object.keys(cells).forEach(function (k) {
+    var c = cells[k], found = c.words.some(function (w) { return S.found.indexOf(w) >= 0; });
+    c.el.classList.toggle('show', isShown(k));
+    c.el.classList.toggle('found', found);
+    c.el.classList.toggle('hinted', S.revealed.indexOf(k) >= 0);
+  });
+}
+function popWord(w) {
+  wordKeys(w).forEach(function (k, i) {
+    var el = cells[k].el; el.classList.remove('pop'); void el.offsetWidth;
+    el.style.animationDelay = (i * 0.06) + 's'; el.classList.add('pop');
+  });
+}
+
+function buildWheel() {
+  letterEls.forEach(function (e) { e.remove(); }); letterEls = [];
+  var box = $('wheelBox');
+  for (var i = 0; i < L.letters.length; i++) {
+    var el = document.createElement('div'); el.className = 'letter'; el.textContent = L.letters[i];
+    el.setAttribute('data-letter', L.letters[i]); el.setAttribute('data-index', i);
+    box.appendChild(el); letterEls.push(el);
+  }
+  layoutWheel();
+}
+function layoutWheel() {
+  if (!L) return;
+  var n = L.letters.length;
+  var avail = Math.min(window.innerWidth - 2 * 70, 300, window.innerHeight * 0.36);
+  var size = Math.max(170, Math.floor(avail));
+  var box = $('wheelBox'); box.style.width = size + 'px'; box.style.height = size + 'px';
+  var ls = Math.round(size * (n <= 4 ? 0.3 : n === 5 ? 0.27 : n === 6 ? 0.25 : n === 7 ? 0.23 : 0.215));
+  var R = size / 2 - ls / 2 - size * 0.05;
+  geom = { size: size, ls: ls, R: R, centers: [] };
+  S.order.forEach(function (li, slot) {
+    var a = -Math.PI / 2 + slot * 2 * Math.PI / n;
+    var x = size / 2 + R * Math.cos(a), y = size / 2 + R * Math.sin(a);
+    geom.centers[li] = { x: x, y: y };
+    var st = letterEls[li].style;
+    st.width = ls + 'px'; st.height = ls + 'px'; st.left = (x - ls / 2) + 'px'; st.top = (y - ls / 2) + 'px'; st.fontSize = Math.round(ls * 0.56) + 'px';
+  });
+  var svg = $('lineSvg'); svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size); svg.setAttribute('width', size); svg.setAttribute('height', size);
+  $('line').setAttribute('stroke-width', Math.max(6, Math.round(ls * 0.17)));
+  drawLine();
+}
+/* ---------- selection & input ---------- */
+function drawLine() {
+  var pts = sel.map(function (i) { return geom.centers[i]; });
+  if (dragging && pointer && pts.length) pts.push(pointer);
+  $('line').setAttribute('points', pts.map(function (p) { return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' '));
+}
+function currentWord() { return sel.map(function (i) { return L.letters[i]; }).join(''); }
+function renderSel() {
+  letterEls.forEach(function (el, i) { el.classList.toggle('sel', sel.indexOf(i) >= 0); });
+  drawLine();
+  var pv = $('preview');
+  if (sel.length) { clearTimeout(flashT); pv.textContent = currentWord(); pv.className = 'on'; }
+  $('goBtn').classList.toggle('hidden', !tapMode);
+  $('clearBtn').classList.toggle('hidden', !tapMode);
+  $('shuffleBtn').classList.toggle('hidden', tapMode);
+  $('hintBtn').classList.toggle('hidden', tapMode);
+}
+function clearSel() { sel = []; dragging = false; tapMode = false; pointer = null; renderSel(); }
+function localPt(x, y) { var r = $('wheelBox').getBoundingClientRect(); return { x: x - r.left, y: y - r.top }; }
+function hit(p, f) {
+  var best = -1, bd = Infinity;
+  geom.centers.forEach(function (c, i) { var d = Math.hypot(c.x - p.x, c.y - p.y); if (d < bd) { bd = d; best = i; } });
+  return bd <= geom.ls * f ? best : -1;
+}
+function onStart(x, y) {
+  if (overlayOpen || !L) return;
+  audioInit();
+  var p = localPt(x, y), h = hit(p, 0.62);
+  if (h < 0) return;
+  if (tapMode && sel[sel.length - 1] === h) { sel.pop(); if (!sel.length) clearSel(); else renderSel(); return; }
+  if (!tapMode) sel = [];
+  gestureStartLen = sel.length;
+  if (sel.indexOf(h) < 0) { sel.push(h); blip(sel.length); }
+  dragging = true; pointer = p; renderSel();
+}
+function onMove(x, y) {
+  if (!dragging) return;
+  var p = localPt(x, y); pointer = p;
+  var h = hit(p, 0.48);
+  if (h >= 0) {
+    if (sel.indexOf(h) < 0) { sel.push(h); blip(sel.length); }
+    else if (sel.length > gestureStartLen + 1 && sel[sel.length - 2] === h) { sel.pop(); }
+  }
+  renderSel();
+}
+function onEnd() {
+  if (!dragging) return;
+  dragging = false; pointer = null;
+  var swiped = sel.length - gestureStartLen >= 2 || (!tapMode && sel.length >= 2);
+  if (swiped && sel.length >= 2) { submit(); return; }
+  tapMode = sel.length > 0; renderSel();
+}
+
+/* ---------- word checking ---------- */
+function flash(word, cls) {
+  var pv = $('preview'); pv.textContent = word; pv.className = ''; void pv.offsetWidth; pv.className = 'on ' + cls;
+  clearTimeout(flashT); flashT = setTimeout(function () { if (!sel.length) pv.className = ''; }, 900);
+}
+function toast(msg) { var t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('on'); }, 1500); }
+function submit() {
+  var w = currentWord(); clearSel();
+  if (w.length < 2) return;
+  var t = targets();
+  if (t.indexOf(w) >= 0) {
+    if (S.found.indexOf(w) >= 0) { flash(w, 'dup'); popWord(w); toast('Already found!'); return; }
+    S.found.push(w); save(); refreshCells(); popWord(w); flash(w, 'good'); chime();
+    checkDone();
+  } else if (w.length >= 3 && DICT.has(w)) {
+    if (S.bonusFound.indexOf(w) >= 0) { flash(w, 'dup'); toast('Already found that bonus word'); return; }
+    S.bonusFound.push(w); S.bonusMeter++;
+    var msg = '\u2605 Bonus word (' + S.bonusMeter + '/' + BONUS_PER_HINT + ' to a hint)';
+    if (S.bonusMeter >= BONUS_PER_HINT) { S.bonusMeter = 0; S.hints++; msg = '\u2605 Bonus word \u2014 +1 hint'; }
+    save(); updateHud(); flash(w, 'bonus'); toast(msg); tone(880, 0.12); tone(1175, 0.18, 0.1);
+  } else {
+    flash(w, 'bad'); buzz();
+  }
+}
+function checkDone() {
+  if (completing) return;
+  if (targets().every(function (w) { return S.found.indexOf(w) >= 0; })) { completing = true; setTimeout(levelComplete, 850); }
+}
+function useHint() {
+  if (overlayOpen || !L || completing) return;
+  if (S.hints <= 0) { toast('Find ' + BONUS_PER_HINT + ' bonus words to earn a hint'); buzz(); return; }
+  var open = targets().filter(function (w) { return S.found.indexOf(w) < 0; }).sort(function (a, b) { return a.length - b.length; });
+  for (var j = 0; j < open.length; j++) {
+    var ks = wordKeys(open[j]).filter(function (k) { return !isShown(k); });
+    if (!ks.length) continue;
+    var k = ks[0];
+    S.revealed.push(k); S.hints--; S.hintsUsed++;
+    L.placements.forEach(function (p) {
+      if (S.found.indexOf(p.word) < 0 && wordKeys(p.word).every(isShown)) S.found.push(p.word);
+    });
+    save(); refreshCells(); var el = cells[k].el; el.classList.remove('pop'); void el.offsetWidth; el.style.animationDelay = '0s'; el.classList.add('pop');
+    updateHud(); tone(660, 0.15); checkDone(); return;
+  }
+}
+function shuffle() {
+  if (overlayOpen || !L) return;
+  var o = S.order.slice(), tries = 0;
+  do { for (var i = o.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var tmp = o[i]; o[i] = o[j]; o[j] = tmp; } tries++; }
+  while (o.join() === S.order.join() && tries < 10);
+  S.order = o; save(); clearSel(); layoutWheel(); tone(520, 0.08);
+}
+function updateHud() {
+  $('hintCount').textContent = S.hints;
+  $('bonusPill').textContent = '\u2605 ' + S.bonusFound.length;
+  $('soundBtn').innerHTML = S.muted ? '&#9835; Off' : '&#9835; On';
+}
+/* ---------- overlays ---------- */
+function openCard(html) { $('card').innerHTML = html; $('overlay').classList.add('on'); overlayOpen = true; clearSel(); }
+function closeCard() { $('overlay').classList.remove('on'); overlayOpen = false; }
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+var CHEERS = ['Well played', 'Splendid', 'Masterful', 'Elegant', 'Impressive', 'Brilliant', 'Superb', 'Nicely done'];
+function levelComplete() {
+  var n = S.level + 1, stars = 3 - Math.min(2, S.hintsUsed), bonus = S.bonusFound.length;
+  var starHtml = '';
+  for (var i = 0; i < 3; i++) starHtml += '<span style="color:' + (i < stars ? '#d4af6a' : '#3a4659') + '">\u2605</span>';
+  S.level++; S.found = []; S.revealed = []; S.bonusFound = []; S.order = null; S.hintsUsed = 0; S.hints++;
+  save();
+  var last = S.level >= LEVELS.length;
+  openCard('<div class="stars">' + starHtml + '</div><h1>' + CHEERS[(n - 1) % CHEERS.length] + '</h1>' +
+    '<p>Level ' + n + ' complete!' + (bonus ? '<br>' + bonus + ' bonus word' + (bonus > 1 ? 's' : '') + ' \u2605' : '') + '<br><b>+1 free hint</b></p>' +
+    '<button class="big" id="nextBtn">' + (last ? 'Finish \u25B6' : 'Next Level \u25B6') + '</button>');
+  $('nextBtn').addEventListener('click', function () { closeCard(); startLevel(); });
+  confetti(); fanfare();
+}
+function showAllDone() {
+  L = null; $('grid').innerHTML = ''; letterEls.forEach(function (e) { e.remove(); }); letterEls = []; cells = {};
+  $('levelPill').textContent = 'All done!';
+  openCard('<div class="stars" style="color:#d4af6a">\u2605\u2605\u2605</div><h1>Grandmaster</h1><p>You have completed all ' + LEVELS.length + ' levels of Letter Wheel Pro.</p>' +
+    '<button class="big" id="againBtn">Play Again</button>');
+  $('againBtn').addEventListener('click', function () { var h = S.hints, m = S.muted; S = defaults(); S.hints = Math.max(3, h); S.muted = m; save(); closeCard(); startLevel(); });
+  confetti(); fanfare();
+}
+function showBonus() {
+  if (overlayOpen || !L) return;
+  var list = S.bonusFound.length ? S.bonusFound.slice().sort().map(esc).join(' ') : '<i>None yet. Any real English word of 3+ letters that is not in the grid counts.</i>';
+  openCard('<h1>\u2605 Bonus Words</h1><div id="bonusList">' + list + '</div>' +
+    '<p>Every ' + BONUS_PER_HINT + ' bonus words = 1 hint<br>Progress: <b>' + S.bonusMeter + ' / ' + BONUS_PER_HINT + '</b></p>' +
+    '<button class="big" id="closeBtn">OK</button><button class="link" id="resetBtn">Start over from Level 1</button>');
+  $('closeBtn').addEventListener('click', closeCard);
+  $('resetBtn').addEventListener('click', function () {
+    if (window.confirm('Start over from Level 1? Your progress will be reset.')) { var m = S.muted; S = defaults(); S.muted = m; save(); closeCard(); startLevel(); }
+  });
+}
+
+/* ---------- sound (Web Audio, no files) ---------- */
+var ac = null;
+function audioInit() {
+  if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+  try { var A = window.AudioContext || window.webkitAudioContext; if (A) ac = new A(); } catch (e) { ac = null; }
+}
+function tone(f, d, t, type, v) {
+  if (!ac || S.muted) return;
+  t = t || 0;
+  try {
+    var o = ac.createOscillator(), g = ac.createGain(), now = ac.currentTime + t;
+    o.type = type || 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(v || 0.08, now); g.gain.exponentialRampToValueAtTime(0.0001, now + d);
+    o.connect(g); g.connect(ac.destination); o.start(now); o.stop(now + d + 0.03);
+  } catch (e) {}
+}
+function blip(n) { tone(440 * Math.pow(2, (n - 1) * 2 / 12), 0.12, 0, 'triangle'); }
+function chime() { tone(523, 0.15); tone(659, 0.15, 0.09); tone(784, 0.25, 0.18); }
+function buzz() { tone(160, 0.2, 0, 'square', 0.04); }
+function fanfare() { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.3, i * 0.12, 'triangle', 0.09); }); }
+
+/* ---------- confetti ---------- */
+function confetti() {
+  var cv = $('confetti'), ctx = cv.getContext('2d'), dpr = window.devicePixelRatio || 1, W = window.innerWidth, H = window.innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var cols = ['#d4af6a', '#f3ead8', '#b8914b', '#7fb3a3', '#e6c784', '#8d97a8'], P = [];
+  for (var i = 0; i < 160; i++) P.push({ x: W / 2 + (Math.random() - 0.5) * 60, y: H * 0.35, vx: (Math.random() - 0.5) * 15, vy: -Math.random() * 15 - 4, s: 7 + Math.random() * 7, c: cols[i % cols.length], r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.35 });
+  var t0 = performance.now();
+  (function frame(t) {
+    ctx.clearRect(0, 0, W, H);
+    P.forEach(function (p) { p.vy += 0.35; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore(); });
+    if (t - t0 < 3200) requestAnimationFrame(frame); else ctx.clearRect(0, 0, W, H);
+  })(t0);
+}
+
+/* ---------- home-screen icon (generated, no external files) ---------- */
+function makeIcon() {
+  try {
+    var c = document.createElement('canvas'); c.width = c.height = 180; var x = c.getContext('2d');
+    var g = x.createLinearGradient(0, 0, 180, 180); g.addColorStop(0, '#22324a'); g.addColorStop(1, '#0b111c');
+    x.fillStyle = g; x.fillRect(0, 0, 180, 180);
+    x.strokeStyle = '#d4af6a'; x.lineWidth = 5; x.beginPath(); x.arc(90, 90, 70, 0, Math.PI * 2); x.stroke();
+    var letters = 'PROWD';
+    for (var i = 0; i < 5; i++) {
+      var a = -Math.PI / 2 + i * 2 * Math.PI / 5, px = 90 + 45 * Math.cos(a), py = 90 + 45 * Math.sin(a);
+      x.fillStyle = '#d4af6a'; x.beginPath(); x.arc(px, py, 21, 0, Math.PI * 2); x.fill();
+      x.fillStyle = '#0f1724'; x.font = 'bold 26px Georgia'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(letters[i], px, py + 1);
+    }
+    var link = document.createElement('link'); link.rel = 'apple-touch-icon'; link.href = c.toDataURL('image/png'); document.head.appendChild(link);
+  } catch (e) {}
+}
+
+/* ---------- events ---------- */
+var box = $('wheelBox'), activeTouch = null;
+box.addEventListener('touchstart', function (e) {
+  e.preventDefault();
+  if (activeTouch !== null) return;
+  var t = e.changedTouches[0]; activeTouch = t.identifier; onStart(t.clientX, t.clientY);
+}, { passive: false });
+box.addEventListener('touchmove', function (e) {
+  e.preventDefault();
+  for (var i = 0; i < e.changedTouches.length; i++) { var t = e.changedTouches[i]; if (t.identifier === activeTouch) onMove(t.clientX, t.clientY); }
+}, { passive: false });
+function touchEnd(e) {
+  e.preventDefault();
+  for (var i = 0; i < e.changedTouches.length; i++) { if (e.changedTouches[i].identifier === activeTouch) { activeTouch = null; onEnd(); } }
+}
+box.addEventListener('touchend', touchEnd, { passive: false });
+box.addEventListener('touchcancel', touchEnd, { passive: false });
+box.addEventListener('mousedown', function (e) { if (e.button === 0) { e.preventDefault(); onStart(e.clientX, e.clientY); } });
+window.addEventListener('mousemove', function (e) { if (dragging) onMove(e.clientX, e.clientY); });
+window.addEventListener('mouseup', function () { onEnd(); });
+// Block page scroll / pull-to-refresh / pinch zoom everywhere except the bonus list.
+document.addEventListener('touchmove', function (e) { if (!(e.target.closest && e.target.closest('#bonusList'))) e.preventDefault(); }, { passive: false });
+['gesturestart', 'gesturechange', 'dblclick', 'contextmenu'].forEach(function (ev) { document.addEventListener(ev, function (e) { e.preventDefault(); }); });
+
+$('shuffleBtn').addEventListener('click', shuffle);
+$('hintBtn').addEventListener('click', function () { audioInit(); useHint(); });
+$('goBtn').addEventListener('click', function () { if (sel.length >= 2) submit(); else { flash(currentWord(), 'bad'); clearSel(); } });
+$('clearBtn').addEventListener('click', clearSel);
+$('bonusPill').addEventListener('click', showBonus);
+$('soundBtn').addEventListener('click', function () { S.muted = !S.muted; save(); updateHud(); audioInit(); tone(660, 0.1); });
+var rT = 0;
+window.addEventListener('resize', function () { clearTimeout(rT); rT = setTimeout(function () { layoutGrid(); layoutWheel(); }, 60); });
+
+// Small hook for automated tests (read-only state + letter positions).
+window.__letterWheelPro = {
+  state: function () { return JSON.parse(JSON.stringify(S)); },
+  level: function () { return L; },
+  letterCenter: function (i) { var r = letterEls[i].getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+};
+
+makeIcon();
+startLevel();
+})();
+</script>
+</body>
+</html>

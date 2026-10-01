@@ -1,0 +1,1 @@
+module.exports=["apter","niter","girted","taring","legit","septa","oaten","anion","amino","tangier","stein","pantie","deice","manlier","stapler","ins","patine","miler","tared","intel","dicta","strep","crape","caret","inure","toiler","tonier"];
